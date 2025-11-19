@@ -78,7 +78,7 @@ export default function App(): JSX.Element {
                 <p>{item.description}</p>
               </div>
               <div>
-                <button onClick={() => removeItem(item.id)}>Delete</button>
+                <button onClick={() => removeItem()}>Delete</button>
               </div>
             </li>
           ))}
