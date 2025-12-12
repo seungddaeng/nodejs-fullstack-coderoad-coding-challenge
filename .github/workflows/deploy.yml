@@ -2,58 +2,58 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:  
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-      
+          node-version: "20"
+
       - name: Install client dependencies
         working-directory: ./client
         run: npm ci
-      
+
       - name: Build client
         working-directory: ./client
         run: npm run build
-      
+
       - name: Install server dependencies
         working-directory: ./server
         run: npm ci
-      
+
       - name: Build server
         working-directory: ./server
         run: npm run build
-      
+
       - name: Create deployment package
         run: |
           mkdir -p deploy/client
           mkdir -p deploy/server
-          
+
           # Copiar build del client
           cp -r client/dist deploy/client/
-          
+
           # Copiar build del server y archivos necesarios
           cp -r server/dist deploy/server/
           cp server/package*.json deploy/server/
           cp server/db.json deploy/server/
-      
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_KEY }}" > ~/.ssh/deploy_key.pem
           chmod 600 ~/.ssh/deploy_key.pem
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-      
+
       # Desplegar a EC2
       - name: Deploy to EC2
         run: |
@@ -62,13 +62,13 @@ jobs:
             mkdir -p ~/app/client
             mkdir -p ~/app/server
           '
-          
+
           # Copiar archivos del client
           scp -i ~/.ssh/deploy_key.pem -r deploy/client/dist/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/client/
-          
+
           # Copiar archivos del server
           scp -i ~/.ssh/deploy_key.pem -r deploy/server/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/app/server/
-          
+
           # Instalar dependencias de producción y reiniciar servidor
           ssh -i ~/.ssh/deploy_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} '
             cd ~/app/server
@@ -81,7 +81,7 @@ jobs:
             # Opción 2: Si usas systemd
             # sudo systemctl restart coderoad-app
           '
-      
+
       - name: Cleanup
         if: always()
         run: |
